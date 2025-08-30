@@ -88,6 +88,9 @@
     .delete-btn:hover {
       background: #b91c1c;
     }
+    .category-btn {
+      background: #46a3e5;
+    }
   </style>
 </head>
 <body>
@@ -106,111 +109,263 @@
       <option value="Schedule">Schedule</option>
       <option value="Diary">Diary</option>
     </select>
-    <button onclick="createNote()">Add Note</button>
-     
+    <div><button onclick="createNote()">Add Note</button></div>
+    <div>
+
+    </div>
+    <div>
+      <button class="category-btn" onclick="setCategory('Personal')">1. Personal</button>
+      <button class="category-btn" onclick="setCategory('Diary')">2. Diary</button>
+      <button class="category-btn" onclick="setCategory('Schedule')">3. Schedule</button>
+      <button class="category-btn" onclick="setCategory('Study')">4. Study</button>
+      <button class="category-btn" onclick="setCategory('Office')">5. Office</button>
+    </div>
+    
+    
+    <h3 id="selected-category">Selected Category: None</h3>
+    <div>
+    <button onclick="showNote()">Show Note</button></div>
     <h2>Your Notes</h2>
     <div id="notes"></div>
   </div>
+  <!-- Password Options Modal -->
+<div id="pw-options-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="pw-category-title">Password for Category</h3>
+    <button onclick="startCreatePassword()">➕ Create Password</button>
+    <button onclick="startExistingPassword()">🔐 Use Existing Password</button>
+    <button onclick="startForgotPassword()">❓ Forgot Password</button>
+    <button onclick="closePwOptions()">Cancel</button>
+    <p id="pw-options-error" style="color:red;"></p>
+  </div>
+</div>
+
+<!-- Enter/Create Password Modal -->
+<div id="pw-entry-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="pw-entry-title">Password</h3>
+    <input type="password" id="pw-input" placeholder="Password" />
+    <div id="confirm-row" style="display:none;">
+      <input type="password" id="pw-confirm" placeholder="Confirm Password" />
+    </div>
+    <button onclick="submitPassword()">Submit</button>
+    <button onclick="closePwEntry()">Cancel</button>
+    <p id="pw-entry-error" style="color:red;"></p>
+  </div>
+</div>
+
+<!-- Styles for modals -->
+<style>
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.4);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  width: 280px;
+}
+</style>
 
   <script>
-  const API = "http://127.0.0.1:8000";
+const API = "http://127.0.0.1:8000";
+let selectedCategory = null;
 
-  async function fetchNotes() {
-    const res = await fetch(API + "/notes");
-    const data = await res.json();
-    const notesDiv = document.getElementById("notes");
-    notesDiv.innerHTML = "";
-    data.forEach(note => {
-      const div = document.createElement("div");
-      div.className = "note";
-      div.innerHTML = `
-        <div class="note-header">
-          <div>
-            <h4>${note.title} <small>(${note.category})</small></h4>
-            <small>${new Date(note.created_at).toLocaleString()}</small>
-          </div>
-          <div>
-            <button onclick="toggleContent('${note.id}', '${note.category}')">Show</button>
-            <button class="delete-btn" onclick="deleteNote('${note.id}')">Delete</button>
-          </div>
-        </div>
-        <div id="content-${note.id}" class="note-content"></div>
-      `;
-      notesDiv.appendChild(div);
-    });
+// Store passwords for Personal and Diary (you can replace with localStorage if you want)
+const categoryPasswords = { Personal: null, Diary: null };
+// Track which categories have been authorized in this session
+const authorizedCategories = { Personal: false, Diary: false };
+
+// Set category when clicking category buttons or select dropdown
+function setCategory(cat) {
+  selectedCategory = cat;
+  document.getElementById("selected-category").innerText = "Selected Category: " + cat;
+  // Reset authorization only when switching categories
+  if (cat === "Personal" || cat === "Diary") {
+    authorizedCategories[cat] = false;
+  }
+}
+
+// Password prompt handler used during Add Note
+function handlePassword(category) {
+  if (!categoryPasswords[category]) {
+    let choice = prompt(`No password set for ${category}.\nType "new" to create one, or "cancel" to stop:`);
+
+    if (!choice || choice.toLowerCase() === "cancel") return false;
+
+    if (choice.toLowerCase() === "new") {
+      let pw = prompt("Create a new password:");
+      let confirm = prompt("Confirm the password:");
+      if (pw !== confirm) {
+        alert("Passwords do not match!");
+        return false;
+      }
+      categoryPasswords[category] = pw;
+      authorizedCategories[category] = true;
+      alert("Password set successfully!");
+      return true;
+    } else {
+      alert("Invalid input. Type 'new' or 'cancel'.");
+      return false;
+    }
+  } else {
+    // If already authorized, skip prompt
+    if (authorizedCategories[category]) {
+      return true;
+    }
+    let entered = prompt(`Enter password for ${category}:\nType "forgot" if you forgot it.`);
+    if (entered === "forgot") {
+      let contact = prompt("Enter your email or phone number to recover the password:");
+      if (contact) {
+        alert(`A recovery link would be sent to: ${contact} (simulated).`);
+      } else {
+        alert("No contact entered. Cannot recover.");
+      }
+      return false;
+    }
+    if (entered !== categoryPasswords[category]) {
+      alert("Incorrect password!");
+      return false;
+    }
+    authorizedCategories[category] = true;  // mark as authorized
+  }
+  return true;
+}
+
+async function createNote() {
+  const title = document.getElementById("title").value.trim();
+  const content = document.getElementById("content").value.trim();
+  const category = document.getElementById("category").value;
+
+  if (!title || !content) {
+    alert("Please enter both title and content.");
+    return;
   }
 
-  async function createNote() {
-    const title = document.getElementById("title").value;
-    const content = document.getElementById("content").value;
-    const category = document.getElementById("category").value;
+  let password = null;
 
-    if (!title.trim() || !content.trim()) {
-      alert("Please enter both title and content.");
+  if (category === "Personal" || category === "Diary") {
+    // Prompt for password only now, at Add Note button click
+    if (!handlePassword(category)) {
+      // Password prompt failed or canceled, stop
       return;
     }
+    password = categoryPasswords[category];
+  }
 
-    let password = "";
-    if (category === "Personal") {
-      password = prompt("Set a password for this personal note:");
-      if (!password) {
-        alert("Password is required for Personal notes!");
-        return;
-      }
-    }
+  const response = await fetch(API + "/notes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, content, category, password })
+  });
 
-    await fetch(API + "/notes", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({title, content, category, password})
-    });
-
+  if (response.ok) {
+    alert("✅ Note added successfully!");
+    // Clear input fields
     document.getElementById("title").value = "";
     document.getElementById("content").value = "";
-    fetchNotes();
+    showNote(); // refresh notes list, notes start hidden for Personal/Diary
+  } else {
+    alert("❌ Failed to add note.");
+  }
+}
+
+function showNote() {
+  if (!selectedCategory) {
+    alert("Please select a category first!");
+    return;
   }
 
-  async function deleteNote(id) {
-    await fetch(API + "/notes/" + id, { method: "DELETE" });
-    fetchNotes();
+  if (selectedCategory === "Personal" || selectedCategory === "Diary") {
+    // Require password to view notes in these categories
+    if (!authorizedCategories[selectedCategory]) {
+      if (!handlePassword(selectedCategory)) return;
+    }
   }
 
-  async function toggleContent(id, category) {
-    let password = "";
-    if (category === "Personal") {
-      password = prompt("Enter password to view this Personal note:");
-      if (!password) {
-        alert("Password required!");
+  fetch(API + "/notes")
+    .then(res => res.json())
+    .then(data => {
+      const notesDiv = document.getElementById("notes");
+      notesDiv.innerHTML = "";
+
+      const filtered = data.filter(note => note.category === selectedCategory);
+
+      if (filtered.length === 0) {
+        notesDiv.innerHTML = "<p>No notes found in this category.</p>";
         return;
       }
-    }
 
-    const res = await fetch(API + `/notes/${id}/unlock`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ password })
+      filtered.forEach(note => {
+        const div = document.createElement("div");
+        div.className = "note";
+        div.id = `note-${note.id}`;
+        div.innerHTML = `
+          <div class="note-header">
+            <div>
+              <h4>${note.title} <small>(${note.category})</small></h4>
+              <small>${new Date(note.created_at).toLocaleString()}</small>
+            </div>
+            <div>
+              <button onclick="toggleContent('${note.id}', \`${note.content}\`, '${note.category}')">Show</button>
+              <button class="delete-btn" onclick="deleteNote('${note.id}')">Delete</button>
+            </div>
+          </div>
+          <div id="content-${note.id}" class="note-content" style="display:none;"></div>
+        `;
+        notesDiv.appendChild(div);
+      });
     });
+}
 
-    if (res.status === 403) {
-      alert("❌ Wrong password!");
-      return;
-    }
-    if (res.status === 404) {
-      alert("Note not found!");
-      return;
-    }
+function toggleContent(id, content, category) {
+  const div = document.getElementById(`content-${id}`);
 
-    const data = await res.json();
-    const contentDiv = document.getElementById("content-" + id);
-    contentDiv.innerHTML = `<p>${data.content}</p>`;
-    contentDiv.style.display =
-      contentDiv.style.display === "none" || contentDiv.style.display === ""
-        ? "block"
-        : "none";
+  if (div.style.display === "block") {
+    // Content visible, hide it
+    hideContent(id);
+    return;
   }
 
-  fetchNotes();
+  if (category === "Personal" || category === "Diary") {
+    if (!authorizedCategories[category]) {
+      if (!handlePassword(category)) return;
+    }
+  }
+
+  div.innerHTML = `
+    <p>${content}</p>
+    <button onclick="hideContent('${id}')">Hide</button>
+  `;
+  div.style.display = "block";
+}
+
+function hideContent(id) {
+  const div = document.getElementById(`content-${id}`);
+  div.innerHTML = "";
+  div.style.display = "none";
+}
+
+async function deleteNote(id) {
+  await fetch(API + "/notes/" + id, { method: "DELETE" });
+  showNote();
+}
+
+fetchNotes();
+
+async function fetchNotes() {
+  await fetch(API + "/notes"); // preload or refresh
+}
 </script>
+
 
 </body>
 </html>
