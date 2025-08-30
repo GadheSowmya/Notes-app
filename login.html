@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login to Notes App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #cfe9f1, #fff9db);
+    }
+    .login-container, .app-container {
+      max-width: 400px;
+      margin: 80px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #1e3a8a;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1e40af;
+    }
+    .hidden {
+      display: none;
+    }
+    .logout {
+      float: right;
+      font-size: 14px;
+      background: #e11d48;
+      margin: 0 0 10px 0;
+    }
+    .logout:hover {
+      background: #9f1239;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Page -->
+  <div class="login-container" id="login-page">
+    <h2>Login to Notes App</h2>
+    <input type="text" id="login-input" placeholder="Enter email or phone number" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- Notes App -->
+  <div class="app-container hidden" id="notes-app">
+    <button class="logout" onclick="logout()">Logout</button>
+    <h2>Welcome to Notes App</h2>
+    <p id="welcome-msg"></p>
+    <button onclick="window.location.href='index.html'">Enter Notes App</button>
+  </div>
+
+  <script>
+    function login() {
+      const input = document.getElementById("login-input").value.trim();
+      if (!input) {
+        alert("Please enter your email or phone number.");
+        return;
+      }
+
+      // You can validate phone/email format here if needed
+      localStorage.setItem("userLogin", input);
+      showNotesApp(input);
+    }
+
+    function logout() {
+      localStorage.removeItem("userLogin");
+      document.getElementById("notes-app").classList.add("hidden");
+      document.getElementById("login-page").classList.remove("hidden");
+    }
+
+    function showNotesApp(user) {
+      document.getElementById("login-page").classList.add("hidden");
+      document.getElementById("notes-app").classList.remove("hidden");
+      document.getElementById("welcome-msg").innerText = `Logged in as: ${user}`;
+    }
+
+    // Auto-login if user info exists
+    window.onload = function () {
+      const savedUser = localStorage.getItem("userLogin");
+      if (savedUser) {
+        showNotesApp(savedUser);
+      }
+    }
+  </script>
+</body>
+</html>
