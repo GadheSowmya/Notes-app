@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import uuid
 
@@ -10,7 +10,7 @@ app = FastAPI()
 # Allow frontend (index.html) to call backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For local testing, allow all
+    allow_origins=["*"],  # For local testing, allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,11 +20,15 @@ app.add_middleware(
 class NoteCreate(BaseModel):
     title: str
     content: str
+    category: str
+    password: Optional[str] = None  # password optional
 
 class Note(BaseModel):
     id: str
     title: str
     content: str
+    category: str
+    password: Optional[str] = None
     created_at: str
     updated_at: str
 
@@ -34,6 +38,7 @@ notes_db: List[Note] = []
 # --- Routes ---
 @app.get("/notes", response_model=List[Note])
 def get_notes():
+    # Sort by updated_at descending
     return sorted(notes_db, key=lambda n: n.updated_at, reverse=True)
 
 @app.post("/notes", response_model=Note)
@@ -43,6 +48,8 @@ def create_note(note: NoteCreate):
         id=str(uuid.uuid4()),
         title=note.title,
         content=note.content,
+        category=note.category,
+        password=note.password,
         created_at=now,
         updated_at=now
     )
@@ -57,6 +64,8 @@ def update_note(note_id: str, note: NoteCreate):
                 id=n.id,
                 title=note.title,
                 content=note.content,
+                category=note.category,
+                password=note.password,
                 created_at=n.created_at,
                 updated_at=datetime.utcnow().isoformat()
             )
@@ -72,3 +81,10 @@ def delete_note(note_id: str):
         raise HTTPException(status_code=404, detail="Note not found")
     notes_db = new_notes
     return {"ok": True}
+
+
+# --- Simulated password storage (in-memory) ---
+category_passwords = {
+    "Personal": None,
+    "Diary": None
+}
