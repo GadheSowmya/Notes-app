@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Notes App (FastAPI)</title>
   <style>
+    /* CSS Styles */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #e0e7ff, #fef9c3);
@@ -14,9 +15,24 @@
     header {
       background: #2b6b9c;
       color: white;
-      padding: 20px;
-      text-align: center;
+      padding: 10px 20px; 
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 1.8em;
+    }
+    .user-info {
+        text-align: right;
+        font-size: 0.9em;
+    }
+    .user-info small {
+        display: block;
+        font-weight: 300;
+        color: #ddd;
     }
     .container {
       max-width: 800px;
@@ -79,8 +95,7 @@
     }
     .note-content {
       margin-top: 10px;
-      display: none;
-      color: #334155;
+      color: #334155; 
     }
     .delete-btn {
       background: #dc2626;
@@ -91,11 +106,56 @@
     .category-btn {
       background: #46a3e5;
     }
+    /* Styles for modals */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.4);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      width: 280px;
+    }
+    .modal-content button {
+        margin: 5px 0;
+    }
+    .logout-btn {
+      background-color: #e11d48;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      margin-left: 10px;
+    }
+    .logout-btn:hover {
+      background-color: #be123c;
+    }
+    .close-btn {
+        background-color: #f59e0b;
+    }
+    .close-btn:hover {
+        background-color: #d97706;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>📝 My Notes App</h1>
+    <div class="user-info">
+        <span id="current-user-display">Loading User...</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
   </header>
 
   <div class="container">
@@ -110,10 +170,8 @@
       <option value="Diary">Diary</option>
     </select>
     <div><button onclick="createNote()">Add Note</button></div>
-    <div>
-
-    </div>
-    <div>
+    
+    <div style="margin-top: 15px;">
       <button class="category-btn" onclick="setCategory('Personal')">1. Personal</button>
       <button class="category-btn" onclick="setCategory('Diary')">2. Diary</button>
       <button class="category-btn" onclick="setCategory('Schedule')">3. Schedule</button>
@@ -121,124 +179,214 @@
       <button class="category-btn" onclick="setCategory('Office')">5. Office</button>
     </div>
     
-    
     <h3 id="selected-category">Selected Category: None</h3>
-    <div>
-    <button onclick="showNote()">Show Note</button></div>
+    <div style="margin-bottom: 20px;">
+      <button onclick="showNote()">Show Notes</button>
+      <button class="close-btn" onclick="closeNote()">Close Notes</button>
+    </div>
+    
     <h2>Your Notes</h2>
     <div id="notes"></div>
   </div>
-  <!-- Password Options Modal -->
-<div id="pw-options-modal" class="modal-overlay">
+  
+<div id="auth-modal" class="modal-overlay">
   <div class="modal-content">
-    <h3 id="pw-category-title">Password for Category</h3>
-    <button onclick="startCreatePassword()">➕ Create Password</button>
-    <button onclick="startExistingPassword()">🔐 Use Existing Password</button>
-    <button onclick="startForgotPassword()">❓ Forgot Password</button>
-    <button onclick="closePwOptions()">Cancel</button>
-    <p id="pw-options-error" style="color:red;"></p>
-  </div>
-</div>
-
-<!-- Enter/Create Password Modal -->
-<div id="pw-entry-modal" class="modal-overlay">
-  <div class="modal-content">
-    <h3 id="pw-entry-title">Password</h3>
-    <input type="password" id="pw-input" placeholder="Password" />
-    <div id="confirm-row" style="display:none;">
-      <input type="password" id="pw-confirm" placeholder="Confirm Password" />
+    <h3 id="auth-title">Password Required</h3>
+    <p id="auth-message"></p>
+    <div id="auth-options">
+      <button onclick="authAction('VERIFY')">Enter Password</button>
+      <button onclick="authAction('SET')">Set New Password</button>
     </div>
-    <button onclick="submitPassword()">Submit</button>
-    <button onclick="closePwEntry()">Cancel</button>
-    <p id="pw-entry-error" style="color:red;"></p>
+    <div id="auth-input-container" style="display:none;">
+      <input type="password" id="auth-pw-input" placeholder="Password" />
+      <div id="auth-confirm-row" style="display:none;">
+        <input type="password" id="auth-pw-confirm" placeholder="Confirm Password" />
+      </div>
+      <button onclick="submitAuth()">Submit</button>
+      <button onclick="forgotPassword()">Forgot Password?</button>
+    </div>
+    <button onclick="closeAuthModal()">Cancel</button>
+    <p id="auth-error" style="color:red;"></p>
   </div>
 </div>
-
-<!-- Styles for modals -->
-<style>
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top:0; left:0; right:0; bottom:0;
-  background: rgba(0,0,0,0.4);
-  z-index: 999;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  width: 280px;
-}
-</style>
 
   <script>
 const API = "http://127.0.0.1:8000";
+const userId = localStorage.getItem("currentUser");
+
+if (!userId) {
+  alert("You are not logged in. Redirecting...");
+  window.location.href = "login.html";
+} else {
+    // Display the current user ID
+    document.getElementById('current-user-display').innerHTML = `Logged in as: <small>${userId}</small>`;
+}
+
 let selectedCategory = null;
+const authorizedCategories = {}; // Tracks authorization for current session
+let currentAuthAction = null; 
+let actionAfterAuth = null;
 
-// Store passwords for Personal and Diary (you can replace with localStorage if you want)
-const categoryPasswords = { Personal: null, Diary: null };
-// Track which categories have been authorized in this session
-const authorizedCategories = { Personal: false, Diary: false };
 
-// Set category when clicking category buttons or select dropdown
 function setCategory(cat) {
   selectedCategory = cat;
   document.getElementById("selected-category").innerText = "Selected Category: " + cat;
-  // Reset authorization only when switching categories
   if (cat === "Personal" || cat === "Diary") {
-    authorizedCategories[cat] = false;
+    authorizedCategories[cat] = false; 
   }
 }
 
-// Password prompt handler used during Add Note
-function handlePassword(category) {
-  if (!categoryPasswords[category]) {
-    let choice = prompt(`No password set for ${category}.\nType "new" to create one, or "cancel" to stop:`);
+// --- Password/Authorization Modal Logic ---
 
-    if (!choice || choice.toLowerCase() === "cancel") return false;
+function showAuthModal(title, message, optionsVisible, action) {
+  document.getElementById('auth-title').innerText = title;
+  document.getElementById('auth-message').innerText = message;
+  document.getElementById('auth-error').innerText = '';
+  document.getElementById('auth-pw-input').value = '';
+  document.getElementById('auth-confirm-row').style.display = 'none';
+  document.getElementById('auth-input-container').style.display = 'none';
+  document.getElementById('auth-options').style.display = optionsVisible ? 'block' : 'none';
+  document.getElementById('auth-modal').style.display = 'flex';
+  actionAfterAuth = action;
+}
 
-    if (choice.toLowerCase() === "new") {
-      let pw = prompt("Create a new password:");
-      let confirm = prompt("Confirm the password:");
-      if (pw !== confirm) {
-        alert("Passwords do not match!");
-        return false;
-      }
-      categoryPasswords[category] = pw;
-      authorizedCategories[category] = true;
-      alert("Password set successfully!");
-      return true;
+function closeAuthModal() {
+  document.getElementById('auth-modal').style.display = 'none';
+  currentAuthAction = null;
+  actionAfterAuth = null;
+}
+
+function authAction(actionType) {
+  currentAuthAction = actionType;
+  document.getElementById('auth-options').style.display = 'none';
+  document.getElementById('auth-input-container').style.display = 'block';
+
+  if (actionType === 'SET') {
+    document.getElementById('auth-title').innerText = `Set Password for ${selectedCategory}`;
+    document.getElementById('auth-confirm-row').style.display = 'block';
+  } else if (actionType === 'VERIFY') {
+    document.getElementById('auth-title').innerText = `Enter Password for ${selectedCategory}`;
+    document.getElementById('auth-confirm-row').style.display = 'none';
+  }
+}
+
+async function submitAuth() {
+  const password = document.getElementById('auth-pw-input').value.trim();
+  const errorElement = document.getElementById('auth-error');
+
+  if (!password) {
+    errorElement.innerText = 'Password cannot be empty.';
+    return;
+  }
+
+  if (currentAuthAction === 'SET') {
+    const confirm = document.getElementById('auth-pw-confirm').value.trim();
+    if (password !== confirm) {
+      errorElement.innerText = 'Passwords do not match.';
+      return;
+    }
+    await setCategoryPassword(selectedCategory, password);
+
+  } else if (currentAuthAction === 'VERIFY') {
+    await verifyCategoryPassword(selectedCategory, password);
+  }
+}
+
+async function setCategoryPassword(category, password) {
+    const errorElement = document.getElementById('auth-error');
+    try {
+        const res = await fetch(`${API}/password/${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category, password })
+        });
+        
+        if (res.ok) {
+            alert(`✅ Password set for ${category} successfully!`);
+            authorizedCategories[category] = true;
+            closeAuthModal();
+            executeAuthAction();
+        } else {
+            const err = await res.json();
+            if (err.detail && err.detail.includes("already exists")) {
+                 errorElement.innerText = `Password already set. Please choose 'Enter Password'.`;
+            } else {
+                 errorElement.innerText = err.detail || "Failed to set password.";
+            }
+        }
+    } catch {
+        errorElement.innerText = "Error connecting to backend.";
+    }
+}
+
+async function verifyCategoryPassword(category, password) {
+    const errorElement = document.getElementById('auth-error');
+    try {
+        const res = await fetch(`${API}/verify_password/${userId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ category, password })
+        });
+        
+        if (res.ok) {
+            authorizedCategories[category] = true;
+            closeAuthModal();
+            executeAuthAction();
+        } else {
+            const err = await res.json();
+            errorElement.innerText = err.detail || "Verification failed.";
+        }
+    } catch {
+        errorElement.innerText = "Error connecting to backend.";
+    }
+}
+
+function handleRestrictedAccess(category, action) {
+  actionAfterAuth = action;
+  showAuthModal(
+    `Access ${category}`,
+    `This category is protected.`,
+    true, 
+    action
+  );
+}
+
+function executeAuthAction() {
+    if (!actionAfterAuth) return;
+
+    if (actionAfterAuth === 'CREATE') {
+        createNote(); 
+    } else if (actionAfterAuth === 'SHOW') {
+        showNote(true); 
+    } else if (actionAfterAuth.startsWith('TOGGLE_')) {
+        const parts = actionAfterAuth.split('_');
+        const noteId = parts[1];
+        const content = parts[2]; 
+        const category = parts[3]; 
+        toggleContent(noteId, content, category, true); 
+    }
+    actionAfterAuth = null;
+}
+
+// --- Password Reset Simulation ---
+
+function forgotPassword() {
+    closeAuthModal(); 
+    const email = prompt("Enter your email address to receive a password reset link:");
+    if (email) {
+        // SIMULATION: In a real app, this sends a reset token to the server.
+        alert(`A password reset link has been simulated and sent to: ${email}. The current category password on the backend is now reset (simulated) and you can set a new one using the 'Set New Password' option.`);
+        // For the purpose of this simulation, re-open the modal and pretend the password is gone
+        // Note: The FastAPI backend doesn't have a 'reset password' route, so this is purely client-side feedback.
     } else {
-      alert("Invalid input. Type 'new' or 'cancel'.");
-      return false;
+        alert("Password reset canceled.");
     }
-  } else {
-    // If already authorized, skip prompt
-    if (authorizedCategories[category]) {
-      return true;
-    }
-    let entered = prompt(`Enter password for ${category}:\nType "forgot" if you forgot it.`);
-    if (entered === "forgot") {
-      let contact = prompt("Enter your email or phone number to recover the password:");
-      if (contact) {
-        alert(`A recovery link would be sent to: ${contact} (simulated).`);
-      } else {
-        alert("No contact entered. Cannot recover.");
-      }
-      return false;
-    }
-    if (entered !== categoryPasswords[category]) {
-      alert("Incorrect password!");
-      return false;
-    }
-    authorizedCategories[category] = true;  // mark as authorized
-  }
-  return true;
+    // Re-open the main auth modal to allow re-entry or setting a new password
+    handleRestrictedAccess(selectedCategory, actionAfterAuth);
 }
+
+
+// --- Note CRUD Operations ---
 
 async function createNote() {
   const title = document.getElementById("title").value.trim();
@@ -250,55 +398,53 @@ async function createNote() {
     return;
   }
 
-  let password = null;
+  try {
+      const response = await fetch(`${API}/notes/${userId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content, category })
+      });
 
-  if (category === "Personal" || category === "Diary") {
-    // Prompt for password only now, at Add Note button click
-    if (!handlePassword(category)) {
-      // Password prompt failed or canceled, stop
-      return;
-    }
-    password = categoryPasswords[category];
-  }
-
-  const response = await fetch(API + "/notes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, content, category, password })
-  });
-
-  if (response.ok) {
-    alert("✅ Note added successfully!");
-    // Clear input fields
-    document.getElementById("title").value = "";
-    document.getElementById("content").value = "";
-    showNote(); // refresh notes list, notes start hidden for Personal/Diary
-  } else {
-    alert("❌ Failed to add note.");
+      if (response.ok) {
+          alert("✅ Note added successfully!");
+          document.getElementById("title").value = "";
+          document.getElementById("content").value = "";
+          if (selectedCategory) {
+              showNote();
+          }
+      } else {
+          alert("❌ Failed to add note.");
+      }
+  } catch (err) {
+    alert("Error connecting to backend.");
   }
 }
 
-function showNote() {
+async function showNote(skipAuthCheck = false) {
   if (!selectedCategory) {
     alert("Please select a category first!");
     return;
   }
 
-  if (selectedCategory === "Personal" || selectedCategory === "Diary") {
-    // Require password to view notes in these categories
+  if ((selectedCategory === "Personal" || selectedCategory === "Diary") && !skipAuthCheck) {
     if (!authorizedCategories[selectedCategory]) {
-      if (!handlePassword(selectedCategory)) return;
+        handleRestrictedAccess(selectedCategory, 'SHOW'); 
+        return;
     }
   }
 
-  fetch(API + "/notes")
-    .then(res => res.json())
-    .then(data => {
+  try {
+      const res = await fetch(`${API}/notes/${userId}`);
+      if (!res.ok) {
+        alert("Failed to fetch notes.");
+        return;
+      }
+      
+      const data = await res.json();
       const notesDiv = document.getElementById("notes");
       notesDiv.innerHTML = "";
-
+      
       const filtered = data.filter(note => note.category === selectedCategory);
-
       if (filtered.length === 0) {
         notesDiv.innerHTML = "<p>No notes found in this category.</p>";
         return;
@@ -308,6 +454,7 @@ function showNote() {
         const div = document.createElement("div");
         div.className = "note";
         div.id = `note-${note.id}`;
+        
         div.innerHTML = `
           <div class="note-header">
             <div>
@@ -323,49 +470,65 @@ function showNote() {
         `;
         notesDiv.appendChild(div);
       });
-    });
+  } catch (err) {
+    alert("Error connecting to backend.");
+  }
 }
 
-function toggleContent(id, content, category) {
-  const div = document.getElementById(`content-${id}`);
+function closeNote() {
+    document.getElementById("notes").innerHTML = "";
+}
 
+function toggleContent(id, content, category, skipAuthCheck = false) {
+  const div = document.getElementById(`content-${id}`);
+  const toggleButton = document.querySelector(`#note-${id} .note-header button`);
+
+  // 1. If content is currently visible, hide it.
   if (div.style.display === "block") {
-    // Content visible, hide it
-    hideContent(id);
+    div.style.display = "none";
+    div.innerHTML = "";
+    toggleButton.innerText = "Show";
     return;
   }
 
-  if (category === "Personal" || category === "Diary") {
+  // 2. If content is hidden, check auth before showing.
+  if ((category === "Personal" || category === "Diary") && !skipAuthCheck) {
     if (!authorizedCategories[category]) {
-      if (!handlePassword(category)) return;
+      const encodedContent = encodeURIComponent(content);
+      handleRestrictedAccess(category, `TOGGLE_${id}_${encodedContent}_${category}`);
+      return;
     }
   }
 
-  div.innerHTML = `
-    <p>${content}</p>
-    <button onclick="hideContent('${id}')">Hide</button>
-  `;
+  // 3. If authorized or unrestricted, show content.
+  const contentToDisplay = skipAuthCheck ? decodeURIComponent(content) : content;
+  
+  div.innerHTML = `<p>${contentToDisplay}</p>`;
   div.style.display = "block";
+  toggleButton.innerText = "Hide";
 }
 
-function hideContent(id) {
-  const div = document.getElementById(`content-${id}`);
-  div.innerHTML = "";
-  div.style.display = "none";
-}
 
 async function deleteNote(id) {
-  await fetch(API + "/notes/" + id, { method: "DELETE" });
-  showNote();
+  if (!confirm("Are you sure you want to delete this note?")) return;
+  
+  try {
+      const response = await fetch(`${API}/notes/${userId}/${id}`, { method: "DELETE" });
+      if (response.ok) {
+          showNote();
+      } else {
+          alert("Failed to delete note.");
+      }
+  } catch (err) {
+      alert("Error connecting to backend.");
+  }
 }
 
-fetchNotes();
-
-async function fetchNotes() {
-  await fetch(API + "/notes"); // preload or refresh
+function logout() {
+  localStorage.removeItem("currentUser");
+  window.location.href = "login.html";
 }
 </script>
-
 
 </body>
 </html>
