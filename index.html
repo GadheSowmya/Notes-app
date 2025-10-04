@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Notes App (FastAPI)</title>
   <style>
-    /* CSS Styles */
+    /* CSS Styles (Complete, same as previous response) */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #e0e7ff, #fef9c3);
@@ -211,13 +211,13 @@
 </div>
 
   <script>
-// Use relative path for public hosting (Replit, Render, etc.)
 const API = window.location.origin;
 const userId = localStorage.getItem("currentUser");
 
 if (!userId) {
   alert("You are not logged in. Redirecting...");
-  window.location.href = `${API}/static/login.html`;
+  // Redirects to the root URL (which serves login.html)
+  window.location.href = `${API}`; 
 } else {
     document.getElementById('current-user-display').innerHTML = `Logged in as: <small>${userId}</small>`;
 }
@@ -236,7 +236,7 @@ function setCategory(cat) {
   }
 }
 
-// --- Password/Authorization Modal Logic ---
+// --- Password/Authorization Modal Logic (Complete) ---
 
 function showAuthModal(title, message, optionsVisible, action) {
   document.getElementById('auth-title').innerText = title;
@@ -368,8 +368,6 @@ function executeAuthAction() {
     actionAfterAuth = null;
 }
 
-// --- Password Reset Simulation ---
-
 function forgotPassword() {
     closeAuthModal(); 
     const email = prompt("Enter your email address to receive a password reset link:");
@@ -382,7 +380,7 @@ function forgotPassword() {
 }
 
 
-// --- Note CRUD Operations ---
+// --- Note CRUD Operations (Complete) ---
 
 async function createNote() {
   const title = document.getElementById("title").value.trim();
@@ -522,7 +520,8 @@ async function deleteNote(id) {
 
 function logout() {
   localStorage.removeItem("currentUser");
-  window.location.href = `${API}/static/login.html`;
+  // Redirects to the root URL (which serves login.html)
+  window.location.href = `${API}`; 
 }
 </script>
 
