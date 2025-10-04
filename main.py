@@ -14,15 +14,20 @@ DATA_FILE = "notes_data.json"
 
 app = FastAPI()
 
-# --- Serve Static Files (HTML/CSS/JS) ---
-# Ensure your HTML files are inside a folder named 'static'
+# --- Serve Files from Root Directory ---
+# These routes serve your HTML files directly from the repository's root.
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", include_in_schema=False)
 async def serve_login():
     """Serves the login page when the root URL is accessed."""
-    return FileResponse("static/login.html")
+    return FileResponse("login.html")
 
+@app.get("/index.html", include_in_schema=False)
+async def serve_index():
+    """Serves the index page."""
+    return FileResponse("index.html")
+    
 # --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Data Models ---
+# --- Data Models (Complete) ---
 class NoteCreate(BaseModel):
     title: str
     content: str
@@ -53,8 +58,7 @@ class CategoryPassword(BaseModel):
     category: str
     password: str
 
-# --- Persistence Functions ---
-
+# --- Persistence and Data Initialization (Complete) ---
 def load_data():
     """Loads notes and passwords from JSON file."""
     global user_notes, user_passwords
@@ -67,7 +71,6 @@ def load_data():
                     user_notes[user_id] = [Note(**note) for note in notes_list]
                 user_passwords = data.get('passwords', {})
         except json.JSONDecodeError:
-            print(f"Warning: Could not decode {DATA_FILE}. Starting with empty data.")
             user_notes = {}
             user_passwords = {}
     else:
@@ -90,13 +93,13 @@ def save_data():
     except Exception as e:
         print(f"Error saving data to file: {e}")
 
-# --- In-Memory Storage (Initialized on load) ---
+# Global storage initialized on server start
 user_notes: Dict[str, List[Note]] = {} 
 user_passwords: Dict[str, Dict[str, Optional[str]]] = {} 
 load_data() 
 
-# --- Routes ---
 
+# --- API Routes (Complete) ---
 @app.post("/login")
 def login(user: UserLogin):
     user_id = user.user_id.strip()
@@ -183,4 +186,5 @@ def delete_note(user_id: str, note_id: str):
 
     save_data()
     return {"ok": True}
+
 
