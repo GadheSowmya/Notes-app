@@ -54,7 +54,6 @@
 </div>
 
 <script>
-// Use relative path for public hosting (Replit, Render, etc.)
 const API = window.location.origin;
 
 async function login() {
@@ -78,7 +77,8 @@ async function login() {
     }
 
     localStorage.setItem("currentUser", userId);
-    window.location.href = `${API}/static/index.html`;
+    // Redirects to index.html in the root
+    window.location.href = `${API}/index.html`;
 
   } catch (err) {
     console.error(err);
@@ -93,7 +93,8 @@ window.onload = async () => {
   try {
     const res = await fetch(`${API}/notes/${savedUser}`); 
     if (res.ok) {
-      window.location.href = `${API}/static/index.html`;
+      // Redirects to index.html in the root
+      window.location.href = `${API}/index.html`;
     } else {
       localStorage.removeItem("currentUser");
     }
