@@ -6,18 +6,16 @@ from datetime import datetime
 import uuid
 import json
 import os
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+# Removed: from fastapi.staticfiles import StaticFiles (since we don't use it)
 
 # --- Configuration ---
 DATA_FILE = "notes_data.json"
 
 app = FastAPI()
 
-# --- Serve Files from Root Directory ---
-# These routes serve your HTML files directly from the repository's root.
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# --- Serve HTML Files from Root Directory ---
+# NOTE: The /static mount point (which caused the crash) is REMOVED.
 @app.get("/", include_in_schema=False)
 async def serve_login():
     """Serves the login page when the root URL is accessed."""
@@ -25,7 +23,7 @@ async def serve_login():
 
 @app.get("/index.html", include_in_schema=False)
 async def serve_index():
-    """Serves the index page."""
+    """Serves the index page when navigated directly."""
     return FileResponse("index.html")
     
 # --- CORS Middleware ---
@@ -42,7 +40,7 @@ class NoteCreate(BaseModel):
     title: str
     content: str
     category: str
-
+# ... (Other Data Models are identical) ...
 class Note(BaseModel):
     id: str
     title: str
@@ -58,7 +56,9 @@ class CategoryPassword(BaseModel):
     category: str
     password: str
 
+
 # --- Persistence and Data Initialization (Complete) ---
+# NOTE: Ensure the rest of your main.py file (load_data, save_data, user_notes, user_passwords, and all API routes) is placed here.
 def load_data():
     """Loads notes and passwords from JSON file."""
     global user_notes, user_passwords
@@ -93,11 +93,9 @@ def save_data():
     except Exception as e:
         print(f"Error saving data to file: {e}")
 
-# Global storage initialized on server start
 user_notes: Dict[str, List[Note]] = {} 
 user_passwords: Dict[str, Dict[str, Optional[str]]] = {} 
 load_data() 
-
 
 # --- API Routes (Complete) ---
 @app.post("/login")
@@ -186,5 +184,6 @@ def delete_note(user_id: str, note_id: str):
 
     save_data()
     return {"ok": True}
+
 
 
