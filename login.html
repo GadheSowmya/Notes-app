@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login to Notes App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Notes App</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
       background: linear-gradient(135deg, #cfe9f1, #fff9db);
     }
-    .login-container, .app-container {
+    .container {
       max-width: 400px;
-      margin: 80px auto;
+      margin: 100px auto;
       background: white;
       padding: 30px;
       border-radius: 10px;
@@ -43,69 +43,64 @@
     button:hover {
       background: #1e40af;
     }
-    .hidden {
-      display: none;
-    }
-    .logout {
-      float: right;
-      font-size: 14px;
-      background: #e11d48;
-      margin: 0 0 10px 0;
-    }
-    .logout:hover {
-      background: #9f1239;
-    }
   </style>
 </head>
 <body>
 
-  <!-- Login Page -->
-  <div class="login-container" id="login-page">
-    <h2>Login to Notes App</h2>
-    <input type="text" id="login-input" placeholder="Enter email or phone number" />
-    <button onclick="login()">Login</button>
-  </div>
+<div class="container">
+  <h2>Login to Notes App</h2>
+  <input type="text" id="login-input" placeholder="Enter email or username" />
+  <button onclick="login()">Enter</button>
+</div>
 
-  <!-- Notes App -->
-  <div class="app-container hidden" id="notes-app">
-    <button class="logout" onclick="logout()">Logout</button>
-    <h2>Welcome to Notes App</h2>
-    <p id="welcome-msg"></p>
-    <button onclick="window.location.href='index.html'">Enter Notes App</button>
-  </div>
+<script>
+const API = "http://127.0.0.1:8000";
 
-  <script>
-    function login() {
-      const input = document.getElementById("login-input").value.trim();
-      if (!input) {
-        alert("Please enter your email or phone number.");
-        return;
-      }
+async function login() {
+  const userId = document.getElementById("login-input").value.trim();
+  if (!userId) {
+    alert("Please enter your email or username");
+    return;
+  }
 
-      // You can validate phone/email format here if needed
-      localStorage.setItem("userLogin", input);
-      showNotesApp(input);
+  try {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert("Login failed: " + (err.detail || "Unknown error"));
+      return;
     }
 
-    function logout() {
-      localStorage.removeItem("userLogin");
-      document.getElementById("notes-app").classList.add("hidden");
-      document.getElementById("login-page").classList.remove("hidden");
-    }
+    localStorage.setItem("currentUser", userId);
+    window.location.href = "index.html";
 
-    function showNotesApp(user) {
-      document.getElementById("login-page").classList.add("hidden");
-      document.getElementById("notes-app").classList.remove("hidden");
-      document.getElementById("welcome-msg").innerText = `Logged in as: ${user}`;
-    }
+  } catch (err) {
+    console.error(err);
+    alert("Error connecting to backend");
+  }
+}
 
-    // Auto-login if user info exists
-    window.onload = function () {
-      const savedUser = localStorage.getItem("userLogin");
-      if (savedUser) {
-        showNotesApp(savedUser);
-      }
+window.onload = async () => {
+  const savedUser = localStorage.getItem("currentUser");
+  if (!savedUser) return;
+
+  try {
+    const res = await fetch(`${API}/notes/${savedUser}`); 
+    if (res.ok) {
+      window.location.href = "index.html";
+    } else {
+      localStorage.removeItem("currentUser");
     }
-  </script>
+  } catch {
+    localStorage.removeItem("currentUser");
+  }
+};
+</script>
+
 </body>
 </html>
