@@ -54,7 +54,8 @@
 </div>
 
 <script>
-const API = "http://127.0.0.1:8000";
+// Use relative path for public hosting (Replit, Render, etc.)
+const API = window.location.origin;
 
 async function login() {
   const userId = document.getElementById("login-input").value.trim();
@@ -77,7 +78,7 @@ async function login() {
     }
 
     localStorage.setItem("currentUser", userId);
-    window.location.href = "index.html";
+    window.location.href = `${API}/static/index.html`;
 
   } catch (err) {
     console.error(err);
@@ -92,7 +93,7 @@ window.onload = async () => {
   try {
     const res = await fetch(`${API}/notes/${savedUser}`); 
     if (res.ok) {
-      window.location.href = "index.html";
+      window.location.href = `${API}/static/index.html`;
     } else {
       localStorage.removeItem("currentUser");
     }
