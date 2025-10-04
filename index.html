@@ -211,19 +211,19 @@
 </div>
 
   <script>
-const API = "http://127.0.0.1:8000";
+// Use relative path for public hosting (Replit, Render, etc.)
+const API = window.location.origin;
 const userId = localStorage.getItem("currentUser");
 
 if (!userId) {
   alert("You are not logged in. Redirecting...");
-  window.location.href = "login.html";
+  window.location.href = `${API}/static/login.html`;
 } else {
-    // Display the current user ID
     document.getElementById('current-user-display').innerHTML = `Logged in as: <small>${userId}</small>`;
 }
 
 let selectedCategory = null;
-const authorizedCategories = {}; // Tracks authorization for current session
+const authorizedCategories = {}; 
 let currentAuthAction = null; 
 let actionAfterAuth = null;
 
@@ -374,14 +374,10 @@ function forgotPassword() {
     closeAuthModal(); 
     const email = prompt("Enter your email address to receive a password reset link:");
     if (email) {
-        // SIMULATION: In a real app, this sends a reset token to the server.
-        alert(`A password reset link has been simulated and sent to: ${email}. The current category password on the backend is now reset (simulated) and you can set a new one using the 'Set New Password' option.`);
-        // For the purpose of this simulation, re-open the modal and pretend the password is gone
-        // Note: The FastAPI backend doesn't have a 'reset password' route, so this is purely client-side feedback.
+        alert(`A password reset link has been simulated and sent to: ${email}. Please use the 'Set New Password' option to update your category password.`);
     } else {
         alert("Password reset canceled.");
     }
-    // Re-open the main auth modal to allow re-entry or setting a new password
     handleRestrictedAccess(selectedCategory, actionAfterAuth);
 }
 
@@ -526,11 +522,9 @@ async function deleteNote(id) {
 
 function logout() {
   localStorage.removeItem("currentUser");
-  window.location.href = "login.html";
+  window.location.href = `${API}/static/login.html`;
 }
 </script>
 
 </body>
 </html>
-
-
