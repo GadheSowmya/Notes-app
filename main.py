@@ -6,11 +6,22 @@ from datetime import datetime
 import uuid
 import json
 import os
-
-app = FastAPI()
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 # --- Configuration ---
 DATA_FILE = "notes_data.json"
+
+app = FastAPI()
+
+# --- Serve Static Files (HTML/CSS/JS) ---
+# Ensure your HTML files are inside a folder named 'static'
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", include_in_schema=False)
+async def serve_login():
+    """Serves the login page when the root URL is accessed."""
+    return FileResponse("static/login.html")
 
 # --- CORS Middleware ---
 app.add_middleware(
@@ -51,13 +62,9 @@ def load_data():
         try:
             with open(DATA_FILE, 'r') as f:
                 data = json.load(f)
-                # Deserialize notes correctly, handling the case where 'notes' might be None or missing
-                notes_data = data.get('notes', {})
                 user_notes = {}
-                for user_id, notes_list in notes_data.items():
-                    # Ensure each note is converted to the Pydantic Note model
+                for user_id, notes_list in data.get('notes', {}).items():
                     user_notes[user_id] = [Note(**note) for note in notes_list]
-                
                 user_passwords = data.get('passwords', {})
         except json.JSONDecodeError:
             print(f"Warning: Could not decode {DATA_FILE}. Starting with empty data.")
@@ -71,7 +78,6 @@ def save_data():
     """Saves notes and passwords to JSON file."""
     try:
         with open(DATA_FILE, 'w') as f:
-            # Convert Pydantic models back to dicts for JSON serialization
             serializable_notes = {
                 user_id: [note.model_dump() for note in notes]
                 for user_id, notes in user_notes.items()
@@ -87,7 +93,7 @@ def save_data():
 # --- In-Memory Storage (Initialized on load) ---
 user_notes: Dict[str, List[Note]] = {} 
 user_passwords: Dict[str, Dict[str, Optional[str]]] = {} 
-load_data() # Load data when the server starts
+load_data() 
 
 # --- Routes ---
 
@@ -99,9 +105,8 @@ def login(user: UserLogin):
 
     if user_id not in user_notes:
         user_notes[user_id] = []
-        # Initialize password storage for the new user
         user_passwords[user_id] = {"Personal": None, "Diary": None, "Office": None, "Study": None, "Schedule": None}
-        save_data() # Save new user data
+        save_data() 
     
     return {"message": f"User {user_id} logged in successfully."}
 
@@ -142,7 +147,6 @@ def verify_password(user_id: str, data: CategoryPassword):
 def get_notes(user_id: str):
     if user_id not in user_notes:
         return []
-    # Use list comprehension to ensure returned objects are standard Notes
     return sorted(user_notes[user_id], key=lambda n: n.updated_at, reverse=True)
 
 @app.post("/notes/{user_id}", response_model=Note)
@@ -179,3 +183,4 @@ def delete_note(user_id: str, note_id: str):
 
     save_data()
     return {"ok": True}
+
